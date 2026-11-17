@@ -43,7 +43,11 @@ export const cheapsharkCollector: Collector = {
     const url = "https://www.cheapshark.com/api/1.0/deals?upperPrice=" + upperPrice + "&pageSize=" + pageSize + "&onSale=1";
     ctx.log("GET " + url);
 
-    const res = await ctx.http.json<Deal[]>(url);
+    // CheapShark 会拦截通用浏览器 UA：先回 403 再截断连接，导致 undici 报 fetch failed。
+    // 用具名 UA 才能正常拿到 200（2026-11-17 实测：通用 UA 的 pageSize=40 必失败，具名 UA 两次均 200）。
+    const res = await ctx.http.json<Deal[]>(url, {
+      headers: { "user-agent": "freebie-radar/1.0 (https://github.com/bullshitAI52/freebie-radar)" },
+    });
     if (res.status !== 200) throw new Error("CheapShark HTTP " + res.status);
     const list = Array.isArray(res.data) ? res.data : [];
 
